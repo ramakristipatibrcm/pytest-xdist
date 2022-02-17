@@ -121,7 +121,7 @@ class DSession:
         while not self.session_finished:
             self.loop_once()
             if self.shouldstop:
-                self.triggershutdown()
+                self.triggershutdown(str(self.shouldstop))
                 raise Interrupted(str(self.shouldstop))
         return True
 
@@ -129,9 +129,10 @@ class DSession:
         """Process one callback from one of the workers."""
         while 1:
             if not self._active_nodes:
+                msg = "Unexpectedly no active workers available"
                 # If everything has died stop looping
-                self.triggershutdown()
-                raise RuntimeError("Unexpectedly no active workers available")
+                self.triggershutdown(msg)
+                raise RuntimeError(msg)
             try:
                 eventcall = self.queue.get(timeout=2.0)
                 break
@@ -144,7 +145,7 @@ class DSession:
         self.log("calling method", method, kwargs)
         call(**kwargs)
         if self.sched.tests_finished:
-            self.triggershutdown()
+            self.triggershutdown("Finished tests")
 
     #
     # callbacks for processing events from workers
@@ -227,7 +228,9 @@ class DSession:
                 msg = "maximum crashed workers reached: %d" % self._max_worker_restart
             self._summary_report = msg
             self.report_line("\n" + msg)
-            self.triggershutdown()
+
+            if self._max_worker_restart != 0:
+                self.triggershutdown(msg)
         else:
             self.report_line("\nreplacing crashed worker %s" % node.gateway.id)
             self._clone_node(node)
@@ -340,8 +343,8 @@ class DSession:
             if self.maxfail and self.countfailures >= self.maxfail:
                 self.shouldstop = "stopping after %d failures" % (self.countfailures)
 
-    def triggershutdown(self):
-        self.log("triggering shutdown")
+    def triggershutdown(self, reason):
+        self.log("triggering shutdown - {} {}".format(reason, self._max_worker_restart))
         self.shuttingdown = True
         for node in self.sched.nodes:
             node.shutdown()
