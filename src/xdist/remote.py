@@ -23,6 +23,10 @@ except ImportError:
     def setproctitle(title):
         pass
 
+def non_debug_log():
+    log_file = os.getenv("PYTEST_XDIST_DEBUG_LOG", None)
+    return py.log.Path(log_file) if log_file else None
+
 
 def worker_title(title):
     try:
@@ -39,7 +43,7 @@ class WorkerInteractor:
         self.testrunuid = config.workerinput["testrunuid"]
         self.log = py.log.Producer("worker-%s" % self.workerid)
         if not config.option.debug:
-            py.log.setconsumer(self.log._keywords, None)
+            py.log.setconsumer(self.log._keywords, non_debug_log())
         self.channel = channel
         config.pluginmanager.register(self)
 

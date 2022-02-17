@@ -13,6 +13,11 @@ from xdist.scheduler import (
 
 from queue import Empty, Queue
 
+def non_debug_log():
+    import os
+    log_file = os.getenv("PYTEST_XDIST_DEBUG_LOG", None)
+    return py.log.Path(log_file) if log_file else None
+
 
 class Interrupted(KeyboardInterrupt):
     """signals an immediate interruption."""
@@ -36,7 +41,7 @@ class DSession:
         self.config = config
         self.log = py.log.Producer("dsession")
         if not config.option.debug:
-            py.log.setconsumer(self.log._keywords, None)
+            py.log.setconsumer(self.log._keywords, non_debug_log())
         self.nodemanager = None
         self.sched = None
         self.shuttingdown = False

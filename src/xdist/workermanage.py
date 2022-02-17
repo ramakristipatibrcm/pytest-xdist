@@ -12,6 +12,11 @@ import xdist.remote
 from xdist.plugin import _sys_path
 
 
+def non_debug_log():
+    log_file = os.getenv("PYTEST_XDIST_DEBUG_LOG", None)
+    return py.log.Path(log_file) if log_file else None
+
+
 def parse_spec_config(config):
     xspeclist = []
     for xspec in config.getvalue("tx"):
@@ -232,7 +237,7 @@ class WorkerController:
         self._shutdown_sent = False
         self.log = py.log.Producer("workerctl-%s" % gateway.id)
         if not self.config.option.debug:
-            py.log.setconsumer(self.log._keywords, None)
+            py.log.setconsumer(self.log._keywords, non_debug_log())
 
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, self.gateway.id)
